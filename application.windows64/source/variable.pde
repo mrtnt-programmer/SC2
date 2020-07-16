@@ -10,5 +10,6 @@ int block;
 int gamewidth,gameheight;
 int locationX,locationY;
 float spawntime;
+float gametime;
 
 boolean moveleft,moveright,moveup,movedown;

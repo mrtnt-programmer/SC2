@@ -4,6 +4,7 @@ class Tir{
   PVector vitesse;
   int myteam;
   boolean deleteme = false;
+  float spawntime;
   
   //fonction
   Tir(float Xdonne,float Ydonne,float Xallerdonne,float Yallerdonne,int teamdonne){
@@ -11,13 +12,20 @@ class Tir{
     myteam = teamdonne;// equipe 1 ou 2
     vitesse = new PVector(5,5);
     target = new PVector(Xallerdonne,Yallerdonne);
+    spawntime = gametime;
   }
   
   void action(){
     mouvement();
     afficher();
     detection();//regarde si on intersepte un ennemie
-    
+    tempdevie();
+  }
+  
+  void tempdevie(){
+    if(gametime-spawntime >= 2){
+      deleteme = true;
+    }
   }
   
   void mouvement(){
@@ -40,7 +48,7 @@ class Tir{
       float jesuisunesupervariable = marins.get(i).myteam;
       if (jesuisunesupervariable != myteam){
         //hibox time///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        if(abs(mybody.x-marins.get(i).mybody.x)<width/192 && abs(mybody.y-marins.get(i).mybody.y)<width/192){
+        if(abs(mybody.x-marins.get(i).mybody.x)<gamewidth/192 && abs(mybody.y-marins.get(i).mybody.y)<gamewidth/192){
           marins.get(i).degat(6);
           deleteme = true;
         }

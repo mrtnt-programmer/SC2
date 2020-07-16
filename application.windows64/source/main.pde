@@ -7,6 +7,8 @@ triger
 
 Minim
 
+itch.io
+
 https://processing.org/reference/mouseReleased_.html
 
 if(millis()% 1000<20){//de 18 a 30 (18 ca risaue de louper 30 ca le ferai une seul foit)
@@ -47,25 +49,27 @@ void setup() {
 
 
 void draw() {
-  frameRate(120);
+  frameRate(120);//de base 60fps peux aller jusqua 300
   background(0, 255, 255);
   movecamera();
-  if(millis()% 1000<23){
-    spawntime++;
+  if(millis()% 100<23){//tous les seconde
+    spawntime = spawntime+0.1;
+    gametime = gametime+0.1;
   }
-  terrain.TerrainMaker(locationX,locationY);
-  terrain.action(); 
+  terrain.TerrainMaker(locationX,locationY);//cree le terrain
+  terrain.action(); //actualise les uniter/tirs
   //trouble shoting  
 }
 
 void mousePressed(){//activated when a mouse is pressed
   if (keyCode == SHIFT){
     if (mouseButton == LEFT) {
-      terrain.spawnmarin(mouseX-locationX,mouseY-locationY,2,2);//bleu
+      terrain.spawnmarin(mouseX-locationX      ,mouseY-locationY      ,2           ,1            );//bleu passif
+//////clasee/.fonction//(coordonneX dans le jeu,coordonneY dans le jeu,couleur/team,Action/passif
     }
   }else{
     if (mouseButton == LEFT) {
-      terrain.spawnmarin(mouseX-locationX,mouseY-locationY,1,2);//rouge
+      terrain.spawnmarin(mouseX-locationX,mouseY-locationY,1,1);//rouge passif
     } 
   }
 }

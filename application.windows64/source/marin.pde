@@ -12,23 +12,24 @@ class Marin{
   float right;//droit de l'hitbox
   PVector mybody;//les coordonne du millieu de l'hitbox
   PVector vitesse;//la vitesse de l'uniter
-  
   float myvitesse;//la vitesse de mouvement
+  
   int myteam;// rouge(1) ou bleu(2)
   IntList mytargetlist;//contient l'idetifiant des l'uniter dans la ligne de tir
   int mytarget;//l'uniter la plus proche dans son champ de tir
-  boolean istheretarget;//true if there is target false if not
   float myvie;//combient de degat avant que je meure
   float mysize;//quelle es mon diametre?(rayon*2)
+  float attackcooldown;//horloge qui dit quand on peux attacker
+  float attackspeed;//variable qui contien la vitesse a lequel on tirs
+  boolean istheretarget;//true if there is target false if not
   boolean combat;// ON ATTACKE!!! si c'est true...
   boolean spawn;//regard si on est dans le spawner
-  boolean imortel;//suis je immortelle?
   boolean dead(){if (myvie < 1){return true;}else {return false;}}//suis je mort?
   boolean deleteme = false;//je suis mort alors on m'enleve de ce mond(ou je suis invisible jusqua quond m'enleve)
     
   Marin(float Xdonne,float Ydonne,int team,int combatdonne){
   mysize = width/96;
-  sight = mysize*5;
+  sight = mysize*8;
   range = 5*(sight/9);
   myteam = team;// equipe 1 ou 2
   if(myteam==1){myvitesse=width/800;}
@@ -44,6 +45,8 @@ class Marin{
   if(combatdonne==1){spawn=true;}else{spawn=false;}
   if(combatdonne==2){combat=true;}else{combat=false;}
   mytargetlist = new IntList();
+  attackspeed = 100;//par raport au fps (sur mon ordi 100~1sec)
+  attackcooldown = attackspeed;
   istheretarget = false;
   tirs = new ArrayList<Tir>();
   myvie = 45;//regard dans strarcraft
@@ -53,30 +56,39 @@ class Marin{
   void action(){  
     if (spawn){
       afficher();  
-      imortel = true;
+      horsconstructeur();    
     }
     if (combat){
       mouvement();//on bouge!!!
+      horsterrain();
       afficher();//on me vois!!!
-      if(millis()% 1000<20){
-        tirs();//on attack!!!
-      }
-      //on active/enleve tous les tirs
-      for (int i = tirs.size()-1;i >= 0;i--){
-        if (tirs.get(i).deleteme == true){
-          tirs.remove(i);
-        }else{
-          tirs.get(i).action();
-        }
-      }
+      tirs();//on attack!!!
     }
     debug();
   }
   
-  void debug(){
-    mytargetlist.clear();//on recommance a zero pour pas de beug
+  void debug(){//on recommance a zero pour pas de beug
+    mytargetlist.clear();
     istheretarget = false;
     fill(255,255,255);
+  }
+  
+  void horsterrain(){//si en dehort du terrain enleve
+    if(mybody.x <= gamewidth/4 || mybody.x >= (gamewidth/4)*3 || mybody.y  <= gameheight/3 ||  mybody.y >= (gameheight/3)*2){//verifie si le marin est en dehord de la zone de combat
+      deleteme = true;
+    }
+  }
+  void horsconstructeur(){
+    if (myteam == 1){
+      if(mybody.x <= (gamewidth/16) || mybody.x >= (gamewidth/16)*3 || mybody.y  <= gameheight/3 ||  mybody.y >= (gameheight/3)*2){//verifie si le marin est en dehord de la zone de construction
+        deleteme = true;
+      }
+    }
+    if (myteam == 2){
+      if(mybody.x <= (gamewidth/16)*13 || mybody.x >= (gamewidth/16)*15 || mybody.y  <= gameheight/3 ||  mybody.y >= (gameheight/3)*2){//verifie si le marin est en dehord de la zone de construction
+        deleteme = true;
+      }
+    }
   }
   
   void mouvement(){
@@ -86,9 +98,9 @@ class Marin{
     if (istheretarget){
       //on bouge pas et on tirs
     }else{
-      vitesse.set((marins.get(mytarget).mybody.x - mybody.x),(marins.get(mytarget).mybody.y - mybody.y));
-      vitesse.normalize();
-      mybody.add(vitesse);  
+      vitesse.set((marins.get(mytarget).mybody.x - mybody.x),(marins.get(mytarget).mybody.y - mybody.y));//on dit ou aller
+      vitesse.normalize();// on verifie que la vitesse est constante
+      mybody.add(vitesse); //on bouge!!!
     }
   }else{
     vitesse.set(myvitesse,0);
@@ -96,16 +108,17 @@ class Marin{
     mybody.add(vitesse);
   }
 
-    if(mybody.x <= gamewidth/4 || mybody.x >= (gamewidth/4)*3 || mybody.y  <= gameheight/3 ||  mybody.y >= (gameheight/3)*2){//verifie si le marin est en dehord de la zone de combat
-      deleteme = true;
-    }
   }
   
   void detection(float zonedetection){////doit etre donne le diametre du cercle de detection////////////////////////a optimiser//////////////////////////////////////////////////////////////////////
     for (int i = marins.size()-1;i >= 0;i--){//cherche tous les marins pour ceux dans la zonedetection
       if (myteam != marins.get(i).myteam){
-        if(mybody.x-(zonedetection/2) >= marins.get(i).right || mybody.x+(zonedetection/2) <= marins.get(i).left ||top  >= marins.get(i).bottom || bottom <= marins.get(i).top){//verifie si un enemie est dans 
-          mytargetlist.append(i);
+        if(marins.get(i).combat){
+          // if(mybody.x-(zonedetection/2) <= marins.get(i).right && mybody.x+(zonedetection/2) >= marins.get(i).left && mybody.y-(zonedetection/2) <= marins.get(i).bottom && mybody.y+(zonedetection/2) >= marins.get(i).top){//verifie si un enemie est dans 
+          if(abs(mybody.x-marins.get(i).mybody.x)< zonedetection/2 && abs(mybody.y-marins.get(i).mybody.y)<zonedetection/2){
+            mytargetlist.append(i);
+          }
+          //}
         }
       }
     }
@@ -127,18 +140,32 @@ class Marin{
     }
     if (mytargetlist.size() >= 1){
       mytarget = mytargetlist.get(0);//on a trouver!!!
+      mytargetlist.clear();
       istheretarget = true;
     }else{
       istheretarget = false;
     }
   }
   
-  
   void tirs(){
     detection(range);
     if(istheretarget){
-      fill(255,0,0);
-      tirs.add(new Tir(mybody.x,mybody.y,marins.get(mytarget).mybody.x,marins.get(mytarget).mybody.y,myteam));
+      if(attackcooldown <= 0){
+        fill(255,0,0);
+        tirs.add(new Tir(mybody.x,mybody.y,marins.get(mytarget).mybody.x,marins.get(mytarget).mybody.y,myteam));
+        attackcooldown = attackspeed;
+      }
+    }
+    if(attackcooldown > 0){
+      attackcooldown--;
+    }
+    //on active/enleve tous les tirs
+    for (int i = tirs.size()-1;i >= 0;i--){
+      if (tirs.get(i).deleteme == true){
+        tirs.remove(i);
+      }else{
+        tirs.get(i).action();
+      }    
     }
   }
   
@@ -152,7 +179,7 @@ class Marin{
   }
   
   void degat(int nombrededegat){
-    if (!(imortel)){
+    if (!(spawn)){
       myvie = myvie - nombrededegat;
     }
   }

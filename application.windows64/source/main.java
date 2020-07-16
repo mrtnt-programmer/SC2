@@ -25,6 +25,8 @@ triger
 
 Minim
 
+itch.io
+
 https://processing.org/reference/mouseReleased_.html
 
 if(millis()% 1000<20){//de 18 a 30 (18 ca risaue de louper 30 ca le ferai une seul foit)
@@ -65,25 +67,27 @@ public void setup() {
 
 
 public void draw() {
-  frameRate(120);
+  frameRate(120);//de base 60fps peux aller jusqua 300
   background(0, 255, 255);
   movecamera();
-  if(millis()% 1000<23){
-    spawntime++;
+  if(millis()% 100<23){//tous les seconde
+    spawntime = spawntime+0.1f;
+    gametime = gametime+0.1f;
   }
-  terrain.TerrainMaker(locationX,locationY);
-  terrain.action(); 
+  terrain.TerrainMaker(locationX,locationY);//cree le terrain
+  terrain.action(); //actualise les uniter/tirs
   //trouble shoting  
 }
 
 public void mousePressed(){//activated when a mouse is pressed
   if (keyCode == SHIFT){
     if (mouseButton == LEFT) {
-      terrain.spawnmarin(mouseX-locationX,mouseY-locationY,2,2);//bleu
+      terrain.spawnmarin(mouseX-locationX      ,mouseY-locationY      ,2           ,1            );//bleu passif
+//////clasee/.fonction//(coordonneX dans le jeu,coordonneY dans le jeu,couleur/team,Action/passif
     }
   }else{
     if (mouseButton == LEFT) {
-      terrain.spawnmarin(mouseX-locationX,mouseY-locationY,1,2);//rouge
+      terrain.spawnmarin(mouseX-locationX,mouseY-locationY,1,1);//rouge passif
     } 
   }
 }
@@ -131,6 +135,7 @@ public void movecamera(){
     locationX = locationX + 3;
   }
 }
+//class
 //45hp 6degat tirs tous les 0.61 vue dee 9 peux tire de 5
 class Marin{
   ArrayList<Tir>tirs;//je cree la liste de mes tirs
@@ -145,23 +150,24 @@ class Marin{
   float right;//droit de l'hitbox
   PVector mybody;//les coordonne du millieu de l'hitbox
   PVector vitesse;//la vitesse de l'uniter
-  
   float myvitesse;//la vitesse de mouvement
+  
   int myteam;// rouge(1) ou bleu(2)
   IntList mytargetlist;//contient l'idetifiant des l'uniter dans la ligne de tir
   int mytarget;//l'uniter la plus proche dans son champ de tir
-  boolean istheretarget;//true if there is target false if not
   float myvie;//combient de degat avant que je meure
   float mysize;//quelle es mon diametre?(rayon*2)
+  float attackcooldown;//horloge qui dit quand on peux attacker
+  float attackspeed;//variable qui contien la vitesse a lequel on tirs
+  boolean istheretarget;//true if there is target false if not
   boolean combat;// ON ATTACKE!!! si c'est true...
   boolean spawn;//regard si on est dans le spawner
-  boolean imortel;//suis je immortelle?
   public boolean dead(){if (myvie < 1){return true;}else {return false;}}//suis je mort?
   boolean deleteme = false;//je suis mort alors on m'enleve de ce mond(ou je suis invisible jusqua quond m'enleve)
     
   Marin(float Xdonne,float Ydonne,int team,int combatdonne){
   mysize = width/96;
-  sight = mysize*5;
+  sight = mysize*8;
   range = 5*(sight/9);
   myteam = team;// equipe 1 ou 2
   if(myteam==1){myvitesse=width/800;}
@@ -177,6 +183,8 @@ class Marin{
   if(combatdonne==1){spawn=true;}else{spawn=false;}
   if(combatdonne==2){combat=true;}else{combat=false;}
   mytargetlist = new IntList();
+  attackspeed = 100;//par raport au fps (sur mon ordi 100~1sec)
+  attackcooldown = attackspeed;
   istheretarget = false;
   tirs = new ArrayList<Tir>();
   myvie = 45;//regard dans strarcraft
@@ -186,30 +194,39 @@ class Marin{
   public void action(){  
     if (spawn){
       afficher();  
-      imortel = true;
+      horsconstructeur();    
     }
     if (combat){
       mouvement();//on bouge!!!
+      horsterrain();
       afficher();//on me vois!!!
-      if(millis()% 1000<20){
-        tirs();//on attack!!!
-      }
-      //on active/enleve tous les tirs
-      for (int i = tirs.size()-1;i >= 0;i--){
-        if (tirs.get(i).deleteme == true){
-          tirs.remove(i);
-        }else{
-          tirs.get(i).action();
-        }
-      }
+      tirs();//on attack!!!
     }
     debug();
   }
   
-  public void debug(){
-    mytargetlist.clear();//on recommance a zero pour pas de beug
+  public void debug(){//on recommance a zero pour pas de beug
+    mytargetlist.clear();
     istheretarget = false;
     fill(255,255,255);
+  }
+  
+  public void horsterrain(){//si en dehort du terrain enleve
+    if(mybody.x <= gamewidth/4 || mybody.x >= (gamewidth/4)*3 || mybody.y  <= gameheight/3 ||  mybody.y >= (gameheight/3)*2){//verifie si le marin est en dehord de la zone de combat
+      deleteme = true;
+    }
+  }
+  public void horsconstructeur(){
+    if (myteam == 1){
+      if(mybody.x <= (gamewidth/16) || mybody.x >= (gamewidth/16)*3 || mybody.y  <= gameheight/3 ||  mybody.y >= (gameheight/3)*2){//verifie si le marin est en dehord de la zone de construction
+        deleteme = true;
+      }
+    }
+    if (myteam == 2){
+      if(mybody.x <= (gamewidth/16)*13 || mybody.x >= (gamewidth/16)*15 || mybody.y  <= gameheight/3 ||  mybody.y >= (gameheight/3)*2){//verifie si le marin est en dehord de la zone de construction
+        deleteme = true;
+      }
+    }
   }
   
   public void mouvement(){
@@ -219,9 +236,9 @@ class Marin{
     if (istheretarget){
       //on bouge pas et on tirs
     }else{
-      vitesse.set((marins.get(mytarget).mybody.x - mybody.x),(marins.get(mytarget).mybody.y - mybody.y));
-      vitesse.normalize();
-      mybody.add(vitesse);  
+      vitesse.set((marins.get(mytarget).mybody.x - mybody.x),(marins.get(mytarget).mybody.y - mybody.y));//on dit ou aller
+      vitesse.normalize();// on verifie que la vitesse est constante
+      mybody.add(vitesse); //on bouge!!!
     }
   }else{
     vitesse.set(myvitesse,0);
@@ -229,16 +246,17 @@ class Marin{
     mybody.add(vitesse);
   }
 
-    if(mybody.x <= gamewidth/4 || mybody.x >= (gamewidth/4)*3 || mybody.y  <= gameheight/3 ||  mybody.y >= (gameheight/3)*2){//verifie si le marin est en dehord de la zone de combat
-      deleteme = true;
-    }
   }
   
   public void detection(float zonedetection){////doit etre donne le diametre du cercle de detection////////////////////////a optimiser//////////////////////////////////////////////////////////////////////
     for (int i = marins.size()-1;i >= 0;i--){//cherche tous les marins pour ceux dans la zonedetection
       if (myteam != marins.get(i).myteam){
-        if(mybody.x-(zonedetection/2) >= marins.get(i).right || mybody.x+(zonedetection/2) <= marins.get(i).left ||top  >= marins.get(i).bottom || bottom <= marins.get(i).top){//verifie si un enemie est dans 
-          mytargetlist.append(i);
+        if(marins.get(i).combat){
+          // if(mybody.x-(zonedetection/2) <= marins.get(i).right && mybody.x+(zonedetection/2) >= marins.get(i).left && mybody.y-(zonedetection/2) <= marins.get(i).bottom && mybody.y+(zonedetection/2) >= marins.get(i).top){//verifie si un enemie est dans 
+          if(abs(mybody.x-marins.get(i).mybody.x)< zonedetection/2 && abs(mybody.y-marins.get(i).mybody.y)<zonedetection/2){
+            mytargetlist.append(i);
+          }
+          //}
         }
       }
     }
@@ -260,18 +278,32 @@ class Marin{
     }
     if (mytargetlist.size() >= 1){
       mytarget = mytargetlist.get(0);//on a trouver!!!
+      mytargetlist.clear();
       istheretarget = true;
     }else{
       istheretarget = false;
     }
   }
   
-  
   public void tirs(){
     detection(range);
     if(istheretarget){
-      fill(255,0,0);
-      tirs.add(new Tir(mybody.x,mybody.y,marins.get(mytarget).mybody.x,marins.get(mytarget).mybody.y,myteam));
+      if(attackcooldown <= 0){
+        fill(255,0,0);
+        tirs.add(new Tir(mybody.x,mybody.y,marins.get(mytarget).mybody.x,marins.get(mytarget).mybody.y,myteam));
+        attackcooldown = attackspeed;
+      }
+    }
+    if(attackcooldown > 0){
+      attackcooldown--;
+    }
+    //on active/enleve tous les tirs
+    for (int i = tirs.size()-1;i >= 0;i--){
+      if (tirs.get(i).deleteme == true){
+        tirs.remove(i);
+      }else{
+        tirs.get(i).action();
+      }    
     }
   }
   
@@ -285,7 +317,7 @@ class Marin{
   }
   
   public void degat(int nombrededegat){
-    if (!(imortel)){
+    if (!(spawn)){
       myvie = myvie - nombrededegat;
     }
   }
@@ -311,7 +343,7 @@ class Terrain{
         marins.remove(i);
       }
     }
-    if (spawntime == 61){
+    if (spawntime >= 5){
        spawnterrain();
        spawntime = 0;
     }else{
@@ -319,17 +351,17 @@ class Terrain{
         marinaspawn.clear();
       }
     }
+    extra();
   }
   
   public void spawnterrain(){
     for (int i = marinaspawn.size()-1;i >= 0;i--){
-      
       /////////////////////////////////////////////////////////////////////////////////////to optimes/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       if(marins.get(marinaspawn.get(i)).myteam == 1){
-        spawnmarin(marins.get(marinaspawn.get(i)).mybody.x + (gamewidth/16)*3,marins.get(marinaspawn.get(i)).mybody.y + (gameheight/16)*3,marins.get(marinaspawn.get(i)).myteam,2);
+        spawnmarin(marins.get(marinaspawn.get(i)).mybody.x + (gamewidth/16)*3,marins.get(marinaspawn.get(i)).mybody.y,marins.get(marinaspawn.get(i)).myteam,2);
       }
       if(marins.get(marinaspawn.get(i)).myteam == 2){
-        spawnmarin(marins.get(marinaspawn.get(i)).mybody.x - (gamewidth/16)*3,marins.get(marinaspawn.get(i)).mybody.y - (gameheight/16)*3,marins.get(marinaspawn.get(i)).myteam,2);
+        spawnmarin(marins.get(marinaspawn.get(i)).mybody.x - (gamewidth/16)*3,marins.get(marinaspawn.get(i)).mybody.y,marins.get(marinaspawn.get(i)).myteam,2);
       }
     }
   }
@@ -348,6 +380,12 @@ class Terrain{
   public void spawnmarin(float Xdonne,float Ydonne,int team,int combatdonne){
     marins.add(new Marin(Xdonne,Ydonne,team,combatdonne));////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
+  
+  public void extra(){
+    fill(0,0,0);
+    text(gametime,gamewidth/2,gameheight/26);
+    text(spawntime,gamewidth/2,gameheight/20);
+  }
 }
 class Tir{
   PVector mybody;
@@ -355,6 +393,7 @@ class Tir{
   PVector vitesse;
   int myteam;
   boolean deleteme = false;
+  float spawntime;
   
   //fonction
   Tir(float Xdonne,float Ydonne,float Xallerdonne,float Yallerdonne,int teamdonne){
@@ -362,13 +401,20 @@ class Tir{
     myteam = teamdonne;// equipe 1 ou 2
     vitesse = new PVector(5,5);
     target = new PVector(Xallerdonne,Yallerdonne);
+    spawntime = gametime;
   }
   
   public void action(){
     mouvement();
     afficher();
     detection();//regarde si on intersepte un ennemie
-    
+    tempdevie();
+  }
+  
+  public void tempdevie(){
+    if(gametime-spawntime >= 2){
+      deleteme = true;
+    }
   }
   
   public void mouvement(){
@@ -391,7 +437,7 @@ class Tir{
       float jesuisunesupervariable = marins.get(i).myteam;
       if (jesuisunesupervariable != myteam){
         //hibox time///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        if(abs(mybody.x-marins.get(i).mybody.x)<width/192 && abs(mybody.y-marins.get(i).mybody.y)<width/192){
+        if(abs(mybody.x-marins.get(i).mybody.x)<gamewidth/192 && abs(mybody.y-marins.get(i).mybody.y)<gamewidth/192){
           marins.get(i).degat(6);
           deleteme = true;
         }
@@ -411,6 +457,7 @@ int block;
 int gamewidth,gameheight;
 int locationX,locationY;
 float spawntime;
+float gametime;
 
 boolean moveleft,moveright,moveup,movedown;
   public void settings() {  fullScreen(); }

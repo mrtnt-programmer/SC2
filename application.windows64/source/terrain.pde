@@ -19,7 +19,7 @@ class Terrain{
         marins.remove(i);
       }
     }
-    if (spawntime == 61){
+    if (spawntime >= 5){
        spawnterrain();
        spawntime = 0;
     }else{
@@ -27,17 +27,17 @@ class Terrain{
         marinaspawn.clear();
       }
     }
+    extra();
   }
   
   void spawnterrain(){
     for (int i = marinaspawn.size()-1;i >= 0;i--){
-      
       /////////////////////////////////////////////////////////////////////////////////////to optimes/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       if(marins.get(marinaspawn.get(i)).myteam == 1){
-        spawnmarin(marins.get(marinaspawn.get(i)).mybody.x + (gamewidth/16)*3,marins.get(marinaspawn.get(i)).mybody.y + (gameheight/16)*3,marins.get(marinaspawn.get(i)).myteam,2);
+        spawnmarin(marins.get(marinaspawn.get(i)).mybody.x + (gamewidth/16)*3,marins.get(marinaspawn.get(i)).mybody.y,marins.get(marinaspawn.get(i)).myteam,2);
       }
       if(marins.get(marinaspawn.get(i)).myteam == 2){
-        spawnmarin(marins.get(marinaspawn.get(i)).mybody.x - (gamewidth/16)*3,marins.get(marinaspawn.get(i)).mybody.y - (gameheight/16)*3,marins.get(marinaspawn.get(i)).myteam,2);
+        spawnmarin(marins.get(marinaspawn.get(i)).mybody.x - (gamewidth/16)*3,marins.get(marinaspawn.get(i)).mybody.y,marins.get(marinaspawn.get(i)).myteam,2);
       }
     }
   }
@@ -55,5 +55,11 @@ class Terrain{
   
   void spawnmarin(float Xdonne,float Ydonne,int team,int combatdonne){
     marins.add(new Marin(Xdonne,Ydonne,team,combatdonne));////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  }
+  
+  void extra(){
+    fill(0,0,0);
+    text(gametime,gamewidth/2,gameheight/26);
+    text(spawntime,gamewidth/2,gameheight/20);
   }
 }
